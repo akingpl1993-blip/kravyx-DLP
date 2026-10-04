@@ -1,4 +1,4 @@
-# DLP Platform (working name)
+# Kravyx DLP
 
 Enterprise Data Loss Prevention: endpoint, web, network, email and cloud DLP with
 discovery, classification, EDM/IDM fingerprinting, OCR, explainable risk, and
@@ -20,12 +20,12 @@ make simulate-demo    # inspect a synthetic card file and simulate a policy deci
 make test-db          # tenant isolation + audit tamper detection (see docs/DEVELOPMENT.md)
 ```
 
-`dlpctl` is the simulator engine as a CLI:
+`kravyxctl` is the simulator engine as a CLI:
 
 ```bash
-./target/release/dlpctl inspect   <file>
-./target/release/dlpctl validate  <bundle.json>
-./target/release/dlpctl simulate  <bundle.json> <context.json> [<file>]   # exit 3 = blocked
+./target/release/kravyxctl inspect   <file>
+./target/release/kravyxctl validate  <bundle.json>
+./target/release/kravyxctl simulate  <bundle.json> <context.json> [<file>]   # exit 3 = blocked
 ```
 
 ## Repository map
@@ -34,7 +34,7 @@ make test-db          # tenant isolation + audit tamper detection (see docs/DEVE
 | --- | --- | --- |
 | `core/inspect-core` | Normalisation, data-driven detectors, validators, masking, budgets | Built, tested |
 | `core/policy-core` | Policy bundle compiler + deterministic evaluator + explanation trace | Built, tested |
-| `core/dlpctl` | CLI: inspect, validate, simulate | Built |
+| `core/kravyxctl` | CLI: inspect, validate, simulate | Built |
 | `migrations/` | PostgreSQL schema with forced RLS, MSSP tree, immutable policy versions, hash-chained audit | Built, tested |
 | `packages/schemas/` | JSON Schemas: policy bundle, event envelope | Built, validated |
 | `tests/isolation/` | Tenant-isolation and audit-integrity suite (mutation-tested) | Built |

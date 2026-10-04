@@ -1,9 +1,9 @@
-//! dlpctl — the policy simulator's engine, as a CLI.
+//! kravyxctl — Kravyx DLP policy simulator engine, as a CLI.
 //!
-//!   dlpctl inspect <file>                                   inspection result (masked)
-//!   dlpctl detectors                                        list detectors and run pack self-test
-//!   dlpctl validate <bundle.json>                           compile a policy bundle, report errors
-//!   dlpctl simulate <bundle.json> <context.json> [<file>]   full verdict with trace
+//!   kravyxctl inspect <file>                                   inspection result (masked)
+//!   kravyxctl detectors                                        list detectors and run pack self-test
+//!   kravyxctl validate <bundle.json>                           compile a policy bundle, report errors
+//!   kravyxctl simulate <bundle.json> <context.json> [<file>]   full verdict with trace
 //!
 //! The same code paths back `POST /api/v1/policies/simulate` (via FFI in Phase 1b).
 //! Exit codes: 0 ok, 1 usage, 2 invalid input, 3 blocked (simulate only, for scripting).
@@ -32,7 +32,7 @@ fn print(v: &impl serde::Serialize) {
 
 fn run(args: &[String]) -> Result<ExitCode, (u8, String)> {
     let usage = || {
-        (1u8, "usage: dlpctl inspect <file> | detectors | validate <bundle> | simulate <bundle> <context> [<file>]".to_string())
+        (1u8, "usage: kravyxctl inspect <file> | detectors | validate <bundle> | simulate <bundle> <context> [<file>]".to_string())
     };
     let bad = |e: String| (2u8, e);
     let engine = || Engine::with_builtin().map_err(|e| (2u8, e.to_string()));
@@ -98,7 +98,7 @@ fn main() -> ExitCode {
     match run(&args) {
         Ok(c) => c,
         Err((code, msg)) => {
-            eprintln!("dlpctl: {msg}");
+            eprintln!("kravyxctl: {msg}");
             ExitCode::from(code)
         }
     }

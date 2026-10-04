@@ -1,11 +1,11 @@
 [package]
-name = "dlpctl"
+name = "kravyxctl"
 version = "0.1.0"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 publish.workspace = true
-description = "Developer CLI: inspect content, validate bundles, simulate policy decisions"
+description = "Kravyx DLP developer CLI: inspect content, validate bundles, simulate policy decisions"
 
 [dependencies]
 inspect-core = { path = "../inspect-core" }

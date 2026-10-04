@@ -1,4 +1,4 @@
-title = "dlp gitleaks config"
+title = "Kravyx DLP gitleaks config"
 [extend]
 useDefault = true
 

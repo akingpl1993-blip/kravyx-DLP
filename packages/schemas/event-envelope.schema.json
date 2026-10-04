@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.dlp.local/event-envelope/1.0",
-  "title": "DLP event envelope",
+  "$id": "urn:kravyx:schema:event-envelope:1.0",
+  "title": "Kravyx DLP event envelope",
   "description": "Unit sent by agents/gateways to Ingestion. Never contains raw matched values: inspection carries counts, confidence and masked samples only.",
   "type": "object",
   "additionalProperties": false,

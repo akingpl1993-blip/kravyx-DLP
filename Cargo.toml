@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["core/inspect-core", "core/policy-core", "core/dlpctl"]
+members = ["core/inspect-core", "core/policy-core", "core/kravyxctl"]
 
 [workspace.package]
 edition = "2021"

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.dlp.local/policy-bundle/1.0",
-  "title": "DLP policy bundle",
+  "$id": "urn:kravyx:schema:policy-bundle:1.0",
+  "title": "Kravyx DLP policy bundle",
   "description": "Compiled, signed unit of policy delivered to every enforcement point. Semantic checks (field roots, op/value types, list references, exception rules) are enforced by policy-core at compile time; this schema covers structure.",
   "type": "object",
   "additionalProperties": false,
