@@ -1,0 +1,138 @@
+openapi: 3.1.0
+info:
+  title: Kravyx DLP Policy Service
+  version: 1.0.0-inc1b
+  description: |
+    Increment 1b: bundle validation and policy simulation. Policy CRUD, versions and
+    publishing arrive in increment 1c. Errors are RFC 9457 problem+json.
+    Simulation content is inspected in memory and never stored or logged.
+servers:
+  - url: http://127.0.0.1:8081
+    description: Local dev profile
+security:
+  - bearer: []
+paths:
+  /api/v1/policies:validate:
+    post:
+      operationId: validatePolicyBundle
+      summary: Compile a policy bundle and report errors
+      description: Requires permission `policy.write`. `bundle.tenant_id` must equal the caller's tenant.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [bundle]
+              properties:
+                bundle: { $ref: "#/components/schemas/PolicyBundle" }
+      responses:
+        "200":
+          description: Bundle compiles
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid: { const: true }
+                  result:
+                    type: object
+                    properties:
+                      bundle_version: { type: string }
+        "400": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "413": { $ref: "#/components/responses/Problem" }
+        "415": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+  /api/v1/policies/simulate:
+    post:
+      operationId: simulatePolicy
+      summary: Dry-run a policy decision with an explanation trace
+      description: |
+        Requires permission `policy.read`. Optionally inspects sample content (max 5 MiB)
+        and evaluates every policy with a full condition trace.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [bundle]
+              properties:
+                bundle: { $ref: "#/components/schemas/PolicyBundle" }
+                context:
+                  type: object
+                  description: Facts about user, device, channel, destination, file and classification.
+                content:
+                  type: object
+                  additionalProperties: false
+                  description: Exactly one of text or base64.
+                  properties:
+                    text: { type: string }
+                    base64: { type: string, contentEncoding: base64 }
+                at:
+                  type: string
+                  format: date-time
+                  description: Evaluation time (defaults to now); used for schedules.
+      responses:
+        "200":
+          description: Verdict with trace
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [verdict]
+                properties:
+                  inspection:
+                    type: [object, "null"]
+                    description: Counts, confidence and masked samples only. Never raw values.
+                  verdict:
+                    type: object
+                    required: [action, explanation, matched, trace]
+                    properties:
+                      action:
+                        enum: [allow, audit, warn, justify, request_approval, encrypt, quarantine, block]
+                      explanation: { type: string }
+                      decided_by: { type: [object, "null"] }
+                      matched: { type: array, items: { type: object } }
+                      monitor_matches: { type: array, items: { type: object } }
+                      side_effects: { type: array, items: { type: object } }
+                      trace: { type: array, items: { type: object } }
+                      diagnostics: { type: array, items: { type: string } }
+        "400": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "413": { $ref: "#/components/responses/Problem" }
+        "415": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+  schemas:
+    PolicyBundle:
+      description: See packages/schemas/policy-bundle.schema.json (urn:kravyx:schema:policy-bundle:1.0).
+      type: object
+      required: [schema_version, tenant_id, bundle_version, classifications, policies]
+    Problem:
+      type: object
+      required: [type, title, status, code]
+      properties:
+        type: { type: string, example: "urn:kravyx:problem:tenant_mismatch" }
+        title: { type: string }
+        status: { type: integer }
+        code:
+          type: string
+          enum: [bad_request, invalid_json, invalid_content, invalid_input, invalid_bundle, unauthenticated, forbidden, tenant_mismatch, too_large, unsupported_media_type, not_found, internal]
+        detail: { type: string }
+        instance: { type: string, description: Request ID }
+  responses:
+    Problem:
+      description: Error
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }

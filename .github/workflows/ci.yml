@@ -31,6 +31,34 @@ jobs:
             if grep -q "$v" sim.json; then echo "raw card number leaked: $v"; exit 1; fi
           done
 
+  go:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.80
+      - uses: actions/setup-go@v5
+        with: { go-version: "1.23.x" }
+      - run: cargo build --release --locked -p kravyx-ffi
+      - run: test -z "$(gofmt -l .)" || (gofmt -l . && exit 1)
+      - run: go vet ./...
+      - run: go test -race -count=1 ./...
+      - run: go run golang.org/x/vuln/cmd/govulncheck@v1.1.3 ./...
+      - name: OpenAPI contract is valid
+        run: pip install openapi-spec-validator==0.7.1 && python3 -c "from openapi_spec_validator import validate; from openapi_spec_validator.readers import read_from_filename as r; validate(r('packages/openapi/policy-service.v1.yaml')[0])"
+      - name: Production profiles refuse to start without an authenticator
+        run: |
+          go build -o kravyx-policy ./services/policy/cmd/kravyx-policy
+          if KRAVYX_PROFILE=saas KRAVYX_TLS_CERT_FILE=c KRAVYX_TLS_KEY_FILE=k ./kravyx-policy; then exit 1; fi
+
+  image:
+    runs-on: ubuntu-24.04
+    needs: [go]
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -f deploy/docker/policy.Dockerfile -t kravyx-policy:ci .
+      - uses: aquasecurity/trivy-action@0.28.0
+        with: { image-ref: "kravyx-policy:ci", severity: "HIGH,CRITICAL", exit-code: "1", ignore-unfixed: true }
+
   audit:
     runs-on: ubuntu-24.04
     steps:
@@ -79,4 +107,4 @@ jobs:
     container: { image: semgrep/semgrep }
     steps:
       - uses: actions/checkout@v4
-      - run: semgrep scan --config p/rust --config p/sql-injection --error
+      - run: semgrep scan --config p/rust --config p/golang --config p/sql-injection --error

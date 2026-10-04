@@ -3,7 +3,7 @@
 Phase 1 exit (gate G3, end of week 12): a USB copy on Windows of a file containing
 Luhn-valid test cards is blocked; the incident and audit trail are visible in the console.
 
-## Increment 1 — done (verified locally on Rust 1.80, PostgreSQL 16)
+## Increment 1a — done (verified locally on Rust 1.80, PostgreSQL 16)
 
 | Item | Evidence |
 | --- | --- |
@@ -17,18 +17,29 @@ Luhn-valid test cards is blocked; the incident and audit trail are visible in th
 
 Not run locally: `clippy`, `cargo-audit`, gitleaks, semgrep (tools unavailable offline here); they run in CI.
 
+## Increment 1b — done (verified locally on Go 1.23, Rust 1.80)
+
+| Item | Evidence |
+| --- | --- |
+| `kravyx-ffi` C ABI over the engines (validate, simulate, info) | 4 Rust tests: null inputs, compiler errors, round trip, oversize rejection |
+| Go platform: fail-closed config, secret type, request IDs, security headers, body limits, panic recovery, access logs without query/body, Prometheus-text metrics, RFC 9457 problems | `go test -race`; hostile request ID not echoed; panic detail not leaked |
+| Auth interface + dev authenticator (constant-time token check), per-route permissions | 401/403 tests; production profiles refuse to start until 1c |
+| Policy Service: `POST /api/v1/policies:validate`, `POST /api/v1/policies/simulate` | Tenant mismatch → 403; strict JSON; 5 MiB content cap; raw cards and token absent from responses and logs; live binary smoke test |
+| OpenAPI 3.1 contract | Validated with openapi-spec-validator |
+| Dockerfile (Rust lib → Go → distroless nonroot), CI Go + image + Trivy jobs | Not built here (no Docker); runs in CI |
+
+Not run locally: Docker build, Trivy, govulncheck (no network to the Go vuln DB), clippy.
+
 ## Remaining Phase 1 increments
 
 | Increment | Scope |
 | --- | --- |
-| 1b | Go service foundation (config fail-closed, problem+json, security headers, telemetry); Policy Service API with C-ABI binding to policy-core; `POST /api/v1/policies/simulate` |
-| 1c | Identity: OIDC for console, Entra ID/Okta federation, RBAC enforcement middleware, audit writer |
+| 1c | Identity: OIDC for console, Entra ID/Okta federation, production authenticator; PostgreSQL access layer (pgx) with per-transaction tenant context; policy CRUD, versions, approval and publish; audit writer to `dlp.audit_logs` |
 | 1d | Ingestion (gRPC, mTLS) → Kafka → Incident Service with dedup; OpenSearch indexing |
 | 1e | Console: login, incidents queue + detail (masked evidence), policy list/builder v1, simulator UI, agents list |
 | 1f | Windows agent (user mode): enrolment, mTLS, signed bundle cache, USB write interception via user-mode path, event buffering |
 | 1g | Load and isolation hardening; G3 demo |
 
 ## Open decisions needing input
-1. Go module / org path for Kravyx DLP services (placeholder `example.com/kravyx`; needed from increment 1b).
-2. Build identity in-house vs Keycloak, and whether to reuse the PAM platform's identity/tenancy modules.
-3. Start Microsoft (EV cert, Hardware Dev Center, MVI) and Apple (Endpoint Security entitlement) applications now; lead time is outside our control.
+1. Build identity in-house vs Keycloak, and whether to reuse the PAM platform's identity/tenancy modules.
+2. Start Microsoft (EV cert, Hardware Dev Center, MVI) and Apple (Endpoint Security entitlement) applications now; lead time is outside our control.

@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["core/inspect-core", "core/policy-core", "core/kravyxctl"]
+members = ["core/inspect-core", "core/policy-core", "core/kravyxctl", "core/ffi"]
 
 [workspace.package]
 edition = "2021"
@@ -20,5 +20,7 @@ time = { version = "=0.3.36", features = ["parsing", "formatting", "macros"] }
 [profile.release]
 lto = true
 codegen-units = 1
-panic = "abort"
+# unwind (not abort): kravyx-ffi catches panics so a malformed input can never
+# take down a Go service process. See ADR-006.
+panic = "unwind"
 strip = true

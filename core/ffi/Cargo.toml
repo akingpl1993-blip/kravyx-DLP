@@ -1,0 +1,17 @@
+[package]
+name = "kravyx-ffi"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "C ABI over inspect-core and policy-core for Go services"
+
+[lib]
+crate-type = ["staticlib", "rlib"]
+
+[dependencies]
+inspect-core = { path = "../inspect-core" }
+policy-core = { path = "../policy-core" }
+serde_json.workspace = true
+time.workspace = true
