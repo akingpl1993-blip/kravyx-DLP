@@ -1,0 +1,82 @@
+name: ci
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+
+jobs:
+  rust:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.80
+        with: { components: "rustfmt, clippy" }
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - run: cargo test --workspace --locked
+      - run: cargo build --release -p dlpctl --locked
+      - name: Detector pack self-test and bundle validation
+        run: |
+          ./target/release/dlpctl detectors
+          ./target/release/dlpctl validate tests/fixtures/bundle-example.json
+      - name: No raw sensitive values in simulator output
+        run: |
+          set +e
+          ./target/release/dlpctl simulate tests/fixtures/bundle-example.json tests/fixtures/context-genai.json tests/corpus/positive/card-export-12.csv > sim.json
+          test $? -eq 3   # 3 = blocked
+          set -e
+          for v in $(cut -d, -f3 tests/corpus/positive/card-export-12.csv | tail -n +2); do
+            if grep -q "$v" sim.json; then echo "raw card number leaked: $v"; exit 1; fi
+          done
+
+  audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.80
+      - run: cargo install cargo-audit --locked --version 0.21.0
+      - run: cargo audit
+
+  schemas:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install jsonschema==4.23.0
+      - run: python3 tests/schemas/validate.py
+
+  isolation:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_PASSWORD: ci-only-not-a-secret }
+        ports: ["5432:5432"]
+        options: --health-cmd pg_isready --health-interval 5s --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPASSWORD: ci-only-not-a-secret
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create roles
+        run: |
+          psql -U postgres -c "CREATE ROLE dlp_owner LOGIN NOSUPERUSER PASSWORD 'ci-only-not-a-secret'"
+          psql -U postgres -c "CREATE ROLE dlp_app LOGIN NOSUPERUSER NOBYPASSRLS PASSWORD 'ci-only-not-a-secret'"
+          psql -U postgres -c "CREATE DATABASE dlp OWNER dlp_owner"
+      - run: tests/isolation/run.sh
+
+  secrets:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: gitleaks/gitleaks-action@v2
+        env: { GITLEAKS_CONFIG: .gitleaks.toml }
+
+  semgrep:
+    runs-on: ubuntu-24.04
+    container: { image: semgrep/semgrep }
+    steps:
+      - uses: actions/checkout@v4
+      - run: semgrep scan --config p/rust --config p/sql-injection --error

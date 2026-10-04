@@ -1,0 +1,93 @@
+{
+  "schema_version": "1.0",
+  "tenant_id": "00000000-0000-4000-8000-000000000001",
+  "bundle_version": "pv-2026-10-04.1",
+  "classifications": ["Public", "Internal", "Confidential", "Restricted"],
+  "lists": {
+    "sanctioned_ai": ["copilot-enterprise", "claude-enterprise"],
+    "corporate_m365_tenants": ["contoso.onmicrosoft.com"]
+  },
+  "default_action": "allow",
+  "policies": [
+    {
+      "id": "pol_genai_restricted",
+      "name": "Block Restricted data to unsanctioned GenAI",
+      "priority": 100,
+      "channels": ["web_upload", "genai_prompt"],
+      "rules": [{
+        "id": "r1",
+        "when": { "all": [
+          { "field": "classification", "op": "gte", "value": "Restricted" },
+          { "field": "destination.category", "op": "eq", "value": "generative_ai" },
+          { "not": { "field": "destination.app", "op": "in", "value": { "list": "sanctioned_ai" } } }
+        ]},
+        "then": [
+          { "action": "block" },
+          { "action": "notify_user", "template": "genai_block" },
+          { "action": "create_incident", "severity": "critical" }
+        ]
+      }]
+    },
+    {
+      "id": "pol_pci_external",
+      "name": "Block bulk card data to external destinations",
+      "priority": 90,
+      "rules": [{
+        "id": "r1",
+        "when": { "all": [
+          { "field": "sit.credit_card", "op": "count_gte", "value": 10, "min_confidence": "medium" },
+          { "field": "destination.external", "op": "eq", "value": true }
+        ]},
+        "then": [ { "action": "block" }, { "action": "create_incident", "severity": "high" } ]
+      }, {
+        "id": "r2",
+        "when": { "all": [
+          { "field": "sit.credit_card", "op": "count_gte", "value": 1 },
+          { "field": "destination.external", "op": "eq", "value": true }
+        ]},
+        "then": [ { "action": "justify" }, { "action": "create_incident", "severity": "medium" } ]
+      }]
+    },
+    {
+      "id": "pol_usb_confidential",
+      "name": "Confidential and above may not go to unapproved USB",
+      "priority": 80,
+      "channels": ["usb_write"],
+      "rules": [{
+        "id": "r1",
+        "when": { "all": [
+          { "field": "classification", "op": "gte", "value": "Confidential" },
+          { "not": { "field": "destination.device.trusted", "op": "eq", "value": true } }
+        ]},
+        "then": [ { "action": "block" }, { "action": "notify_user", "template": "usb_block" }, { "action": "create_incident", "severity": "high" } ]
+      }]
+    },
+    {
+      "id": "pol_finance_payments_exception",
+      "name": "Payments team may send card files to the acquirer",
+      "priority": 200,
+      "scope": { "groups": ["payments-ops"] },
+      "rules": [{
+        "id": "x1",
+        "exception": true,
+        "when": { "field": "destination.domain", "op": "eq", "value": "sftp.acquirer.example" },
+        "then": [ { "action": "allow" }, { "action": "tag", "name": "approved-acquirer-transfer" } ]
+      }]
+    },
+    {
+      "id": "pol_monitor_secrets",
+      "name": "Monitor: credentials leaving via any channel",
+      "priority": 50,
+      "mode": "monitor",
+      "rules": [{
+        "id": "m1",
+        "when": { "any": [
+          { "field": "sit.aws_access_key_id", "op": "exists" },
+          { "field": "sit.private_key", "op": "exists" },
+          { "field": "sit.github_token", "op": "exists" }
+        ]},
+        "then": [ { "action": "block" } ]
+      }]
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+title = "dlp gitleaks config"
+[extend]
+useDefault = true
+
+# Detector packs and the synthetic corpus deliberately contain secret-shaped
+# FAKE values (vendor documentation examples, checksum-valid synthetic numbers).
+# They are allowlisted by path only; secrets anywhere else still fail CI.
+[allowlist]
+description = "synthetic detector test vectors"
+paths = [
+  '''core/inspect-core/packs/.*\.json''',
+  '''core/inspect-core/src/validators\.rs''',
+  '''core/inspect-core/tests/.*\.rs''',
+  '''core/policy-core/tests/.*\.rs''',
+  '''tests/corpus/.*''',
+  '''tests/fixtures/.*''',
+]

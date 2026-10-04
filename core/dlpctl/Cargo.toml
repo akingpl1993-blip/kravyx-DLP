@@ -1,0 +1,15 @@
+[package]
+name = "dlpctl"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Developer CLI: inspect content, validate bundles, simulate policy decisions"
+
+[dependencies]
+inspect-core = { path = "../inspect-core" }
+policy-core = { path = "../policy-core" }
+serde_json.workspace = true
+serde.workspace = true
+time.workspace = true

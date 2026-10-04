@@ -1,0 +1,14 @@
+{
+  "event_id": "01J9ZQ4M8V2K7X3N5R6T8W0YAB",
+  "schema_version": "1.0",
+  "tenant_id": "00000000-0000-4000-8000-000000000001",
+  "source": { "type": "endpoint", "id": "agent-7f2c", "version": "0.1.0" },
+  "occurred_at": "2026-10-04T09:12:33.120Z",
+  "channel": "usb_write",
+  "actor": { "user_id": "u-1001", "device_id": "d-77", "process": "explorer.exe" },
+  "object": { "name": "card-export-12.csv", "sha256": "4f6c1a0e9b0d3e8a7c2f5b1d6e9a0c3f7b2d4e6a8c0e2f4a6b8d0c2e4f6a8b0c", "size": 612, "type": "csv", "labels": ["Confidential"] },
+  "destination": { "category": "removable_storage", "device": { "vid": "0781", "pid": "5581", "trusted": false } },
+  "inspection": { "hits": [ { "detector": "credit_card", "count_by_confidence": { "low": 0, "medium": 12, "high": 0 }, "samples": [ { "masked": "538778******2171" } ] } ] },
+  "verdict": { "action": "block", "bundle_version": "pv-2026-10-04.1", "user_justification": null },
+  "evidence_ref": null
+}

@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.dlp.local/policy-bundle/1.0",
+  "title": "DLP policy bundle",
+  "description": "Compiled, signed unit of policy delivered to every enforcement point. Semantic checks (field roots, op/value types, list references, exception rules) are enforced by policy-core at compile time; this schema covers structure.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "tenant_id", "bundle_version", "classifications", "policies"],
+  "properties": {
+    "schema_version": { "type": "string", "pattern": "^1\\.[0-9]+$" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "bundle_version": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "classifications": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1, "uniqueItems": true },
+    "lists": { "type": "object", "additionalProperties": { "type": "array" } },
+    "default_action": { "$ref": "#/$defs/enforcement" },
+    "policies": { "type": "array", "items": { "$ref": "#/$defs/policy" } }
+  },
+  "$defs": {
+    "enforcement": { "enum": ["allow", "audit", "warn", "justify", "request_approval", "encrypt", "quarantine", "block"] },
+    "side_effect": { "enum": ["notify_user", "notify_admin", "create_incident", "tag"] },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "rules"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[A-Za-z0-9_.:-]{1,128}$" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "priority": { "type": "integer" },
+        "mode": { "enum": ["enforce", "monitor"] },
+        "enabled": { "type": "boolean" },
+        "channels": { "type": "array", "items": { "type": "string" } },
+        "scope": {
+          "type": "object", "additionalProperties": false,
+          "properties": {
+            "users": { "type": "array", "items": { "type": "string" } },
+            "groups": { "type": "array", "items": { "type": "string" } },
+            "exclude_users": { "type": "array", "items": { "type": "string" } },
+            "exclude_groups": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "schedule": {
+          "type": "object", "additionalProperties": false,
+          "properties": {
+            "activate_at": { "type": ["string", "null"], "format": "date-time" },
+            "expire_at": { "type": ["string", "null"], "format": "date-time" }
+          }
+        },
+        "rules": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/rule" } }
+      }
+    },
+    "rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "when", "then"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[A-Za-z0-9_.:-]{1,64}$" },
+        "name": { "type": "string" },
+        "exception": { "type": "boolean" },
+        "when": { "$ref": "#/$defs/condition" },
+        "then": {
+          "type": "array", "minItems": 1,
+          "items": {
+            "type": "object", "required": ["action"],
+            "properties": { "action": { "anyOf": [ { "$ref": "#/$defs/enforcement" }, { "$ref": "#/$defs/side_effect" } ] } }
+          }
+        }
+      }
+    },
+    "condition": {
+      "oneOf": [
+        { "type": "object", "additionalProperties": false, "required": ["all"], "properties": { "all": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/condition" } } } },
+        { "type": "object", "additionalProperties": false, "required": ["any"], "properties": { "any": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/condition" } } } },
+        { "type": "object", "additionalProperties": false, "required": ["not"], "properties": { "not": { "$ref": "#/$defs/condition" } } },
+        {
+          "type": "object", "additionalProperties": false, "required": ["field", "op"],
+          "properties": {
+            "field": { "type": "string", "pattern": "^(user|device|app|channel|destination|file|classification|sit|network|risk|volume|time)(\\.[A-Za-z0-9_]+)*$" },
+            "op": { "enum": ["eq", "ne", "in", "not_in", "gt", "gte", "lt", "lte", "contains", "starts_with", "ends_with", "exists", "count_gte"] },
+            "value": {},
+            "min_confidence": { "enum": ["low", "medium", "high"] }
+          }
+        }
+      ]
+    }
+  }
+}

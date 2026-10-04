@@ -1,0 +1,8 @@
+{
+  "time": "2026-10-04T09:00:00Z",
+  "user": { "id": "u-1001", "upn": "test.one@contoso.example", "groups": ["finance"] },
+  "device": { "id": "d-77", "os": "windows", "trust": "managed" },
+  "channel": "web_upload",
+  "classification": "Confidential",
+  "destination": { "category": "file_sharing", "app": "wetransfer", "domain": "wetransfer.com", "external": true }
+}

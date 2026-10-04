@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.dlp.local/event-envelope/1.0",
+  "title": "DLP event envelope",
+  "description": "Unit sent by agents/gateways to Ingestion. Never contains raw matched values: inspection carries counts, confidence and masked samples only.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["event_id", "schema_version", "tenant_id", "source", "occurred_at", "channel", "verdict"],
+  "properties": {
+    "event_id": { "type": "string", "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$", "description": "ULID minted at source; idempotency key" },
+    "schema_version": { "type": "string", "pattern": "^1\\.[0-9]+$" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "source": {
+      "type": "object", "additionalProperties": false, "required": ["type", "id", "version"],
+      "properties": {
+        "type": { "enum": ["endpoint", "web_gw", "net_sensor", "email", "discovery"] },
+        "id": { "type": "string" },
+        "version": { "type": "string" }
+      }
+    },
+    "occurred_at": { "type": "string", "format": "date-time" },
+    "channel": { "type": "string", "pattern": "^[a-z_]{2,40}$" },
+    "actor": { "type": "object" },
+    "object": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "size": { "type": "integer", "minimum": 0 },
+        "type": { "type": "string" },
+        "labels": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "destination": { "type": "object" },
+    "inspection": {
+      "type": "object",
+      "properties": {
+        "hits": {
+          "type": "array",
+          "items": {
+            "type": "object", "required": ["detector", "count_by_confidence"],
+            "properties": {
+              "detector": { "type": "string" },
+              "count_by_confidence": {
+                "type": "object", "additionalProperties": false, "required": ["low", "medium", "high"],
+                "properties": { "low": { "type": "integer" }, "medium": { "type": "integer" }, "high": { "type": "integer" } }
+              },
+              "samples": { "type": "array", "maxItems": 5, "items": { "type": "object", "required": ["masked"] } }
+            }
+          }
+        }
+      }
+    },
+    "verdict": {
+      "type": "object", "required": ["action", "bundle_version"],
+      "properties": {
+        "action": { "enum": ["allow", "audit", "warn", "justify", "request_approval", "encrypt", "quarantine", "block"] },
+        "bundle_version": { "type": "string" },
+        "user_justification": { "type": ["string", "null"], "maxLength": 2000 }
+      }
+    },
+    "evidence_ref": { "type": ["string", "null"] }
+  }
+}

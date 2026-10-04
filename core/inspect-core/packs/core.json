@@ -1,0 +1,176 @@
+{
+  "pack": "core",
+  "version": "2026.10.0",
+  "detectors": [
+    {
+      "id": "credit_card",
+      "name": "Payment card number",
+      "category": "pci",
+      "pattern": "\\b(?:\\d[ -]?){12,18}\\d\\b",
+      "validator": "luhn_card",
+      "keywords": ["card", "credit", "debit", "visa", "mastercard", "amex", "cvv", "expiry", "payment"],
+      "base_confidence": "medium",
+      "keyword_confidence": "high",
+      "test_values": ["4111111111111111", "4242424242424242", "5555555555554444", "5105105105105100", "378282246310005", "371449635398431", "6011111111111117", "4012888888881881"],
+      "mask": "card",
+      "tests": {
+        "match": ["Card: 4526 0181 5908 3012 exp 09/29", "5396030824628190", "amex 3748-219935-18197"],
+        "no_match": ["4526 0181 5908 3013", "order 1234567812345670", "test card 4111 1111 1111 1111", "phone +971 4 123 4567"]
+      }
+    },
+    {
+      "id": "iban",
+      "name": "IBAN",
+      "category": "financial",
+      "pattern": "\\b[A-Z]{2}\\d{2}(?:[A-Z0-9]{11,30}|(?: [A-Z0-9]{4}){2,7}(?: [A-Z0-9]{1,3})?)\\b",
+      "validator": "iban_mod97",
+      "keywords": ["iban", "account", "bank", "beneficiary", "transfer"],
+      "base_confidence": "medium",
+      "keyword_confidence": "high",
+      "test_values": ["GB82WEST12345698765432", "DE89370400440532013000"],
+      "mask": "partial",
+      "tests": {
+        "match": ["IBAN AE40 0330 0000 1023 4567 890", "SA0380000000608010167519"],
+        "no_match": ["AE41 0330 0000 1023 4567 890", "ZZ400330000010234567890", "GB82 WEST 1234 5698 7654 32"]
+      }
+    },
+    {
+      "id": "aws_access_key_id",
+      "name": "AWS access key ID",
+      "category": "credentials",
+      "pattern": "\\b(?:AKIA|ASIA|AIDA|AROA)[A-Z0-9]{16}\\b",
+      "base_confidence": "high",
+      "mask": "secret",
+      "tests": {
+        "match": ["b64:YXdzX2FjY2Vzc19rZXlfaWQgPSBBS0lBUTNFR1JWN1pMVE5LNFhIRA=="],
+        "no_match": ["b64:QUtJQVEzRUdSVjdaTFROSzRYSA=="]
+      }
+    },
+    {
+      "id": "aws_secret_access_key",
+      "name": "AWS secret access key",
+      "category": "credentials",
+      "pattern": "[A-Za-z0-9/+]{40}",
+      "require_keyword": true,
+      "keywords": ["aws_secret", "secret_access_key", "aws secret", "secretaccesskey"],
+      "proximity": 48,
+      "min_entropy": 4.0,
+      "base_confidence": "high",
+      "keyword_confidence": "high",
+      "mask": "secret",
+      "tests": {
+        "match": ["b64:YXdzX3NlY3JldF9hY2Nlc3Nfa2V5PVpxM3ZUOHBMbTJYcjlzS2Q0V243WWIxSGM2R2YwSnQ1VWErZS9SaU8="],
+        "no_match": ["b64:YXdzX3NlY3JldF9hY2Nlc3Nfa2V5PWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWE=", "b64:Y29tbWl0IFpxM3ZUOHBMbTJYcjlzS2Q0V243WWIxSGM2R2YwSnQ1VWErZS9SaU8="]
+      }
+    },
+    {
+      "id": "private_key",
+      "name": "Private key (PEM / OpenSSH / PGP)",
+      "category": "credentials",
+      "pattern": "-----BEGIN (?:RSA |EC |DSA |OPENSSH |ENCRYPTED |PGP )?PRIVATE KEY(?: BLOCK)?-----",
+      "base_confidence": "high",
+      "mask": "full",
+      "tests": {
+        "match": ["b64:LS0tLS1CRUdJTiBPUEVOU1NIIFBSSVZBVEUgS0VZLS0tLS0=", "b64:LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0t"],
+        "no_match": ["b64:LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0=", "b64:LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0t"]
+      }
+    },
+    {
+      "id": "jwt",
+      "name": "JSON Web Token",
+      "category": "credentials",
+      "pattern": "\\beyJ[A-Za-z0-9_-]{8,}\\.eyJ[A-Za-z0-9_-]{8,}\\.[A-Za-z0-9_-]{8,}",
+      "validator": "jwt",
+      "base_confidence": "high",
+      "mask": "secret",
+      "tests": {
+        "match": ["b64:QXV0aG9yaXphdGlvbjogQmVhcmVyIGV5SmhiR2NpT2lKSVV6STFOaUo5LmV5SnpkV0lpT2lKMFpYTjBJbjAuYzJsbmJtRjBkWEpsTFdKNWRHVno="],
+        "no_match": ["b64:ZXlKdWIzUmZhR1ZoWkdWeUlqb3hmUS5leUo0SWpveGZRLmFiY2RlZmdoaWo="]
+      }
+    },
+    {
+      "id": "github_token",
+      "name": "GitHub token",
+      "category": "credentials",
+      "pattern": "\\b(?:gh[pousr]_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{82})\\b",
+      "base_confidence": "high",
+      "mask": "secret",
+      "tests": {
+        "match": ["b64:dG9rZW4gZ2hwX0ZBS0V0ZXN0VE9LRU4wMDAwMDAwMDAwMDAwMDAwMDAwMDBhYg=="],
+        "no_match": ["b64:Z2hwX3Nob3J0", "b64:Z2h4X0ZBS0V0ZXN0VE9LRU4wMDAwMDAwMDAwMDAwMDAwMDAwMDBhYg=="]
+      }
+    },
+    {
+      "id": "db_connection_string",
+      "name": "Database connection string with password",
+      "category": "credentials",
+      "pattern": "\\b(?:postgres(?:ql)?|mysql|mongodb(?:\\+srv)?|redis|amqps?|mssql)://[^\\s:@/]+:[^\\s@/]+@[^\\s/]+",
+      "base_confidence": "high",
+      "mask": "secret",
+      "tests": {
+        "match": ["b64:REFUQUJBU0VfVVJMPXBvc3RncmVzOi8vYXBwOlMzY3IzdFBhc3NAZGIuaW50ZXJuYWw6NTQzMi9hcHA="],
+        "no_match": ["b64:cG9zdGdyZXM6Ly9hcHBAZGIuaW50ZXJuYWwvYXBw"]
+      }
+    },
+    {
+      "id": "email_address",
+      "name": "Email address",
+      "category": "pii",
+      "pattern": "\\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}\\b",
+      "keywords": ["email", "e-mail", "contact", "mailto"],
+      "base_confidence": "low",
+      "keyword_confidence": "medium",
+      "mask": "partial",
+      "tests": {
+        "match": ["Email: jane.doe@example.org"],
+        "no_match": ["user at example dot org"]
+      }
+    },
+    {
+      "id": "uae_emirates_id",
+      "name": "UAE Emirates ID number",
+      "category": "pii",
+      "pattern": "\\b784-?\\d{4}-?\\d{7}-?\\d\\b",
+      "validator": "emirates_id",
+      "keywords": ["emirates id", "eid", "identity card", "id number", "هوية"],
+      "base_confidence": "medium",
+      "keyword_confidence": "high",
+      "mask": "partial",
+      "tests": {
+        "match": ["Emirates ID: 784-1987-0937865-1"],
+        "no_match": ["784-1987-0937865-2"]
+      }
+    },
+    {
+      "id": "india_aadhaar",
+      "name": "India Aadhaar number",
+      "category": "pii",
+      "pattern": "\\b[2-9]\\d{3}[ -]?\\d{4}[ -]?\\d{4}\\b",
+      "validator": "aadhaar",
+      "keywords": ["aadhaar", "aadhar", "uidai", "आधार"],
+      "base_confidence": "low",
+      "keyword_confidence": "high",
+      "mask": "partial",
+      "tests": {
+        "match": ["Aadhaar: 9975 4323 1948"],
+        "no_match": ["Aadhaar: 9975 4323 1949", "ref 9975 4323 1948"]
+      }
+    },
+    {
+      "id": "india_pan",
+      "name": "India PAN",
+      "category": "pii",
+      "pattern": "\\b[A-Z]{3}[PCHFATBLJG][A-Z]\\d{4}[A-Z]\\b",
+      "validator": "india_pan",
+      "keywords": ["pan", "permanent account", "income tax"],
+      "proximity": 32,
+      "base_confidence": "low",
+      "keyword_confidence": "high",
+      "mask": "partial",
+      "tests": {
+        "match": ["PAN: ABCPK1234Q"],
+        "no_match": ["code ABCPK1234Q", "PAN: ABCXK1234Q"]
+      }
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+# Security-critical paths need review from the security owners group.
+/core/                      @dlp/detection-owners @dlp/security-owners
+/migrations/                @dlp/security-owners
+/tests/isolation/           @dlp/security-owners
+/packages/schemas/          @dlp/platform-owners
+/.github/                   @dlp/security-owners
+/.gitleaks.toml             @dlp/security-owners
