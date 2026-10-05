@@ -40,6 +40,7 @@
       "category": "credentials",
       "pattern": "\\b(?:AKIA|ASIA|AIDA|AROA)[A-Z0-9]{16}\\b",
       "base_confidence": "high",
+      "test_values": ["sha256:1a5d44a2dca19669d72edf4c4f1c27c4c1ca4b4408fbb17f6ce4ad452d78ddb3"],
       "mask": "secret",
       "tests": {
         "match": ["b64:YXdzX2FjY2Vzc19rZXlfaWQgPSBBS0lBUTNFR1JWN1pMVE5LNFhIRA=="],
@@ -57,6 +58,7 @@
       "min_entropy": 4.0,
       "base_confidence": "high",
       "keyword_confidence": "high",
+      "test_values": ["sha256:d0a726447116af35f6f8352de2d65b450ce056f8d8a59dadd888374cb4856379"],
       "mask": "secret",
       "tests": {
         "match": ["b64:YXdzX3NlY3JldF9hY2Nlc3Nfa2V5PVpxM3ZUOHBMbTJYcjlzS2Q0V243WWIxSGM2R2YwSnQ1VWErZS9SaU8="],

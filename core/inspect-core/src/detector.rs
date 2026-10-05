@@ -40,8 +40,11 @@ pub struct DetectorSpec {
     /// Minimum Shannon entropy (bits/char) of the match, for secret-like detectors.
     #[serde(default)]
     pub min_entropy: Option<f64>,
-    /// Known dummy/test values (compared after removing spaces and dashes);
-    /// matches are kept but downgraded to Low confidence.
+    /// Known dummy/test values, compared after removing spaces, dashes and dots,
+    /// case-insensitively. Matches are kept but downgraded to Low confidence.
+    /// Forms: plain, `b64:<base64>`, or `sha256:<hex of canonical value>`. Use the
+    /// hash form for vendors' published example credentials: secret scanners
+    /// (including GitHub push protection, which decodes base64) flag them.
     #[serde(default)]
     pub test_values: Vec<String>,
     #[serde(default)]
@@ -116,6 +119,17 @@ pub(crate) struct Compiled {
     pub re: Regex,
     pub keywords_lc: Vec<String>,
     pub test_values: HashSet<String>,
+    /// Hex SHA-256 of canonical test values given as `sha256:<hex>`.
+    pub test_value_hashes: HashSet<String>,
+}
+
+/// Hex SHA-256 of the canonical form of a value (see `canon`).
+pub fn canonical_sha256(value: &str) -> String {
+    use sha2::{Digest, Sha256};
+    Sha256::digest(canon(value).as_bytes())
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect()
 }
 
 /// Strip separators so "4111-1111 1111 1111" and "4111111111111111" compare equal.
@@ -151,7 +165,20 @@ impl Compiled {
             test_values: spec
                 .test_values
                 .iter()
+                .filter(|v| !v.starts_with("sha256:"))
                 .map(|v| decode_vector(v).map(|d| canon(&d)))
+                .collect::<Option<_>>()
+                .ok_or_else(|| PackError::Vector {
+                    id: spec.id.clone(),
+                })?,
+            test_value_hashes: spec
+                .test_values
+                .iter()
+                .filter_map(|v| v.strip_prefix("sha256:"))
+                .map(|h| {
+                    let ok = h.len() == 64 && h.bytes().all(|b| b.is_ascii_hexdigit());
+                    ok.then(|| h.to_ascii_lowercase())
+                })
                 .collect::<Option<_>>()
                 .ok_or_else(|| PackError::Vector {
                     id: spec.id.clone(),
@@ -176,7 +203,10 @@ impl Compiled {
         if self.spec.require_keyword && !has_kw {
             return None;
         }
-        if self.test_values.contains(&canon(m)) {
+        if self.test_values.contains(&canon(m))
+            || (!self.test_value_hashes.is_empty()
+                && self.test_value_hashes.contains(&canonical_sha256(m)))
+        {
             return Some(Confidence::Low);
         }
         Some(if has_kw {

@@ -16,3 +16,14 @@ scanner raise the same alerts. Instead, test values and vectors may be written a
 vectors use this form. Rust test sources assemble such strings from parts (`concat!`).
 `tests/secrets/scan.py --history` fails CI if any commit contains a credential-shaped
 literal. Self-test failure messages print the encoded form, never the decoded value.
+
+## Addendum 2 (2026-10-05): vendor example credentials are stored as hashes
+
+The second push was rejected too: GitHub push protection decodes base64 and recognises
+AWS's published documentation example keys, which the pack listed as known dummy values.
+Synthetic keys in `b64:` form were not flagged. Known dummy values now also accept
+`sha256:<hex of canonical value>` (canonical = separators removed, upper-cased); vendor
+example credentials are stored only in that form and still downgrade matches to Low
+(tested). `tests/secrets/scan.py` decodes `b64:` vectors and fails on known published
+example credentials (held as hashes), and was verified to flag the exact lines GitHub
+rejected. History was rewritten so no commit contains them.

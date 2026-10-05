@@ -6,7 +6,7 @@ scanner. Detector test vectors must use the `b64:` form instead.
 
 Usage: tests/secrets/scan.py [--history]
 """
-import re, subprocess, sys
+import base64, hashlib, re, subprocess, sys
 
 PATTERNS = {
     "aws_access_key_id": re.compile(r"\b(?:AKIA|ASIA|AIDA|AROA)[A-Z0-9]{16}\b"),
@@ -20,6 +20,27 @@ PATTERNS = {
 # A bare 40-char mixed string is only an AWS secret candidate with AWS context on
 # the same line (same rule as GitHub push protection and our own detector).
 AWS_CONTEXT = re.compile(r"(?i)aws|secret_?access|secretaccesskey")
+# Vendors' published example credentials, stored as SHA-256 of the canonical value
+# (separators removed, upper-cased; same rule as inspect-core `canonical_sha256`).
+# GitHub push protection flags these even inside base64, so they may only appear
+# in the repository as `sha256:` test values.
+KNOWN_EXAMPLE_HASHES = {
+    "1a5d44a2dca19669d72edf4c4f1c27c4c1ca4b4408fbb17f6ce4ad452d78ddb3",  # AWS doc example access key ID
+    "d0a726447116af35f6f8352de2d65b450ce056f8d8a59dadd888374cb4856379",  # AWS doc example secret key
+}
+TOKEN = re.compile(r"[A-Za-z0-9/+=_-]{16,}")
+B64_VECTOR = re.compile(r"b64:([A-Za-z0-9+/=]+)")
+
+def canon_hash(v):
+    return hashlib.sha256(re.sub(r"[ .\-]", "", v).upper().encode()).hexdigest()
+
+def decoded_vectors(line):
+    for m in B64_VECTOR.finditer(line):
+        try:
+            yield base64.b64decode(m.group(1), validate=True).decode()
+        except Exception:
+            continue
+
 SKIP = re.compile(r"(^|/)(Cargo\.lock|go\.sum)$")
 
 def git(*args):
@@ -28,6 +49,12 @@ def git(*args):
 def scan_blob(label, text):
     found = []
     for n, line in enumerate(text.splitlines(), 1):
+        # Published example credentials: raw, or hidden inside b64: vectors.
+        candidates = TOKEN.findall(line)
+        for dec in decoded_vectors(line):
+            candidates += TOKEN.findall(dec) + [dec]
+        if any(canon_hash(c) in KNOWN_EXAMPLE_HASHES for c in candidates):
+            found.append(f"{label}:{n}: known_published_example_credential")
         for name, rx in PATTERNS.items():
             if rx.search(line):
                 if name == "aws_secret_like" and not AWS_CONTEXT.search(line):

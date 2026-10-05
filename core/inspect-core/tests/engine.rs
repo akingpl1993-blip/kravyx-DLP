@@ -107,3 +107,43 @@ fn pathological_pattern_cannot_hang() {
     let _ = e.inspect(&"a".repeat(100_000), Budget::default());
     assert!(start.elapsed().as_secs() < 2);
 }
+
+#[test]
+fn vendor_published_example_credentials_are_low_confidence() {
+    // AWS's documentation example keys, assembled from parts (secret scanners
+    // flag the literals). The pack stores them only as SHA-256 hashes.
+    let key_id = concat!("AKIAIOSFODNN7", "EXAMPLE");
+    let secret = concat!("wJalrXUtnFEMI/K7MDENG/", "bPxRfiCYEXAMPLEKEY");
+    let text = format!(
+        "aws_access_key_id = {key_id}\n{} = {secret}",
+        concat!("aws_secret", "_access_key")
+    );
+    let r = engine().inspect(&text, Budget::default());
+    for id in ["aws_access_key_id", "aws_secret_access_key"] {
+        let hit = r
+            .hits
+            .iter()
+            .find(|h| h.detector == id)
+            .unwrap_or_else(|| panic!("{id} not detected"));
+        assert_eq!(
+            hit.max_confidence,
+            Confidence::Low,
+            "{id} example must be Low"
+        );
+    }
+    // A non-example key of the same shape stays High.
+    let real_shape = concat!("AKIAQ3EGRV7Z", "LTNK4XHD");
+    let r = engine().inspect(real_shape, Budget::default());
+    let hit = r
+        .hits
+        .iter()
+        .find(|h| h.detector == "aws_access_key_id")
+        .unwrap();
+    assert_eq!(hit.max_confidence, Confidence::High);
+}
+
+#[test]
+fn malformed_hash_test_value_is_rejected() {
+    let pack = r#"{"pack":"x","version":"1","detectors":[{"id":"x","name":"x","category":"x","pattern":"x","test_values":["sha256:nothex"]}]}"#;
+    assert!(Engine::from_packs(&[pack]).is_err());
+}
