@@ -99,6 +99,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
+      - name: No credential-shaped literals in any commit (mirrors GitHub push protection)
+        run: python3 tests/secrets/scan.py --history
       - uses: gitleaks/gitleaks-action@v2
         env: { GITLEAKS_CONFIG: .gitleaks.toml }
 

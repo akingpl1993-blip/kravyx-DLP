@@ -5,3 +5,4 @@
 - Raw matched values must never leave `inspect-core` results: only counts, confidence and masked samples. CI enforces this for the simulator path.
 - Every tenant-owned table must carry `tenant_id` with forced RLS; `tests/isolation` fails the build otherwise.
 - The runtime database role is never the schema owner and never `BYPASSRLS`.
+- No credential-shaped literals anywhere (even fake ones): use `b64:` vectors in detector packs, or assemble strings from parts in test code. `tests/secrets/scan.py --history` enforces this.
